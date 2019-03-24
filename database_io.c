@@ -52,6 +52,7 @@ char line_to_entry(char* line, FoodItem* entry)
 
   //Starts the parsing
   int i = 0;
+  char* tmp;
   items[i] = strtok(line, "~\n");
   while(items[i] != NULL)
   {
@@ -68,21 +69,10 @@ char line_to_entry(char* line, FoodItem* entry)
     //Multiplier used to find nutrition per serving vs per 100 g/mL
     float multiplier;
 
-    //Converts product name and manufacturer to uppercase
-    char* focus = items[1];
-    while (*focus)
-    {
-      *focus = toupper(*focus);
-      focus++;
-    }
-    focus = items[2];
-    while (*focus)
-    {
-      *focus = toupper(*focus);
-      focus++;
-    }
-
     //Copies all the information to the array, multiplying the multiplier by the nutrition
+    entry->product_id = malloc(strlen(items[0]) + 1);
+    entry->product_name = malloc(strlen(items[1]) + 1);
+    entry->manufacturer = malloc(strlen(items[2]) + 1);
     strcpy(entry->product_id, items[0]);
     strcpy(entry->product_name, items[1]);
     strcpy(entry->manufacturer, items[2]);
@@ -98,6 +88,7 @@ char line_to_entry(char* line, FoodItem* entry)
     entry->protein = multiplier * tmp;
     tmp = atof(items[9]);
     entry->serving_size = tmp;
+    entry->serving_size_units = malloc(strlen(items[10]) + 1);
     strcpy(entry->serving_size_units, items[10]);
     return 1;
   }
@@ -107,4 +98,12 @@ char line_to_entry(char* line, FoodItem* entry)
   {
     return 0;
   }
+}
+
+void free_food_entry(FoodItem* item)
+{
+  free(item->product_id);
+  free(item->product_name);
+  free(item->manufacturer);
+  free(item->serving_size_units);
 }

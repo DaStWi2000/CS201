@@ -15,16 +15,40 @@ void print_facts(FoodItem* entry)
   printf("Serving Size:\t%.1f %s\n", entry->serving_size, entry->serving_size_units);
 }
 
+StorageTrie* initialize_database(unsigned* size)
+{
+  StorageTrie* root = malloc(sizeof(StorageTrie));
+  initialize_node(root);
+  root->AllEntries = malloc(sizeof(FoodItem*));
+  FoodItem* entryList = read_database("database", size);
+  for (unsigned i = 0; i < *size; i++)
+  {
+    add_item_to_trie(entryList + i,root);
+  }
+  *(root->AllEntries) = entryList;
+  root->allEntriesCapacity = 1;
+  root->allEntriesLength = 1;
+}
+
 int main()
 {
   unsigned* size = malloc(sizeof(unsigned));
-  FoodItem* entryList = read_database("database", size);
-  char search[15] = "barbecue";
-  FoodItem* head = find_search_term(search, entryList, size);
-  while (head != NULL)
+  StorageTrie* data = initialize_database(size);
+  char* search = "ice";
+  unsigned* l = malloc(sizeof(unsigned));
+  FoodItem** head = search_items(search, l, data);
+  for (unsigned i = 0; i < *l; i++)
   {
-    print_facts(head);
-    head = head->next;
+    print_facts(*(head + i));
   }
+  for (int i = 0; i < *size; i++)
+  {
+    free_food_entry(*(data->AllEntries)+i);
+  }
+  free(*(data->AllEntries));
+  free_trie(data);
+  free(size);
+  free(l);
+  free(head);
   return 0;
 }
