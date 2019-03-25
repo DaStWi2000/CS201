@@ -127,10 +127,7 @@ void add_item_to_node(FoodItem* item, StorageTrie* node)
       node->AllEntries = realloc(node->AllEntries, sizeof(FoodItem*) * node->allEntriesCapacity);
     }
   }
-  else
-  {
-    *(node->AllEntries + node->allEntriesLength++) = item;
-  }
+  *(node->AllEntries + node->allEntriesLength++) = item;
 }
 
 StorageTrie* find_trie_node(char* search, StorageTrie* node)

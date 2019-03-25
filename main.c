@@ -1,4 +1,5 @@
 #include <math.h>
+#include <ncurses.h>
 #include "database_io.h"
 #include "database_search.h"
 #include "diary_io.h"
@@ -30,25 +31,30 @@ StorageTrie* initialize_database(unsigned* size)
   root->allEntriesLength = 1;
 }
 
-int main()
+void free_database(StorageTrie* data, unsigned* size)
 {
-  unsigned* size = malloc(sizeof(unsigned));
-  StorageTrie* data = initialize_database(size);
-  char* search = "ice";
-  unsigned* l = malloc(sizeof(unsigned));
-  FoodItem** head = search_items(search, l, data);
-  for (unsigned i = 0; i < *l; i++)
-  {
-    print_facts(*(head + i));
-  }
   for (int i = 0; i < *size; i++)
   {
     free_food_entry(*(data->AllEntries)+i);
   }
+  free(size);
   free(*(data->AllEntries));
   free_trie(data);
-  free(size);
-  free(l);
-  free(head);
+}
+
+int main()
+{
+  unsigned* size = malloc(sizeof(unsigned));
+  StorageTrie* data = initialize_database(size);
+  unsigned* diaryEntries = malloc(sizeof(unsigned));
+  unsigned* diaryCapacity = malloc(sizeof(unsigned));
+  unsigned* temp = malloc(sizeof(unsigned));
+  DiaryEntry* diary = read_diary("daniel.log", diaryEntries, diaryCapacity, data);
+  FoodItem** food = search_items("45001542", temp, data);
+  write_item(*food,diary);
+  write_diary("daniel.log", diary, *diaryEntries);
+  free_database(data, size);
+  free(temp);
+  free(food);
   return 0;
 }
