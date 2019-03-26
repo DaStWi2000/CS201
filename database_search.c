@@ -10,6 +10,32 @@ void initialize_node(StorageTrie* node)
   node->allEntriesCapacity = 0;
 }
 
+StorageTrie* initialize_database(unsigned* size)
+{
+  StorageTrie* root = malloc(sizeof(StorageTrie));
+  initialize_node(root);
+  root->AllEntries = malloc(sizeof(FoodItem*));
+  FoodItem* entryList = read_database("database", size);
+  for (unsigned i = 0; i < *size; i++)
+  {
+    add_item_to_trie(entryList + i,root);
+  }
+  *(root->AllEntries) = entryList;
+  root->allEntriesCapacity = 1;
+  root->allEntriesLength = 1;
+  return root;
+}
+
+void free_database(StorageTrie* data, unsigned size)
+{
+  for (int i = 0; i < size; i++)
+  {
+    free_food_entry(*(data->AllEntries)+i);
+  }
+  free(*(data->AllEntries));
+  free_trie(data);
+}
+
 FoodItem** search_items(char* searchTerm, unsigned* length, StorageTrie* root)
 {
   unsigned i = 0;

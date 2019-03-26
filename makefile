@@ -5,7 +5,7 @@ OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=portfolio
 all: $(SOURCES) $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ -lm
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ -lm -lncurses
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
 clean:

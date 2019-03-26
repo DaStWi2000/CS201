@@ -104,8 +104,8 @@ DiaryEntry* read_diary(char* userName, unsigned* length, unsigned* capacity, Sto
     }
     free(line);
     free(l);
+    fclose(diary);
   }
-  fclose(diary);
   return entries;
 }
 
