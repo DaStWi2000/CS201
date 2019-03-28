@@ -1,5 +1,9 @@
 #include "graphics.h"
 
+void display_food_items(WINDOW*, FoodItem**, unsigned, unsigned);
+void display_food_facts(WINDOW*, FoodItem*);
+void display_error(WINDOW*, char*);
+
 char* get_window_input(WINDOW* window, int y, int x, int size)
 {
   unsigned counter = 0;
@@ -90,9 +94,9 @@ void display_food_items(WINDOW* win, FoodItem** list, unsigned length, unsigned 
       memset(maker + strlen(maker), ' ', 26 - strlen(maker));
     }
     strcat(line, id);
-    strcat(line, " ");
+    strcat(line, "|");
     strcat(line, name);
-    strcat(line, " ");
+    strcat(line, "|");
     strcat(line, maker);
     wmove(win, i - start + 1, 1);
     waddstr(win, line);
@@ -162,25 +166,53 @@ void display_food_facts(WINDOW* win, FoodItem* item)
   wrefresh(win);
 }
 
+void display_error(WINDOW* win, char* error)
+{
+  wclear(win);
+  wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
+  wmove(win, 1, 1);
+  waddstr(win, "ERROR: ");
+  waddstr(win, error);
+  wrefresh(win);
+}
+
+void display_help(WINDOW* win)
+{
+  wclear(win);
+  wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
+  wmove(win, 1, 1);
+  waddstr(win, "Commands\tSyntax\t\t\tDescription");
+  wmove(win, 2, 1);
+  waddstr(win, "'search'\tterm1, ..., termn\tSearches the data for the");
+  wmove(win, 3, 1);
+  waddstr(win, "\t\t\t\t\tterms. Returns the");
+  wmove(win, 4, 1);
+  waddstr(win, "\t\t\t\t\tintersection of the searches.");
+  wmove(win, 5, 1);
+  waddstr(win, "'info'\t\tproduct_id\t\tDisplays the information for");
+  wmove(win, 6, 1);
+  waddstr(win, "\t\t\t\t\tthe given product ID.");
+  wrefresh(win);
+}
+
 void main_menu(char* fileName)
 {
   unsigned size;
   StorageTrie* data = initialize_database(&size);
-  unsigned* diaryEntries = malloc(sizeof(unsigned));
-  unsigned* diaryCapacity = malloc(sizeof(unsigned));
-  DiaryEntry* diary = read_diary(fileName, diaryEntries, diaryCapacity, data);
-  //tester(data, diary, fileName, diaryEntries);
+  DiaryEntry* diary = read_diary(fileName, data);
   WINDOW* search_box = newwin(3, 70, 0, 5);
   wborder(search_box, 0, 0, 0, 0, 0, 0, 0, 0);
   WINDOW* display = newwin(20, 70, 4, 5);
   wborder(display, 0, 0, 0, 0, 0, 0, 0, 0);
-  WINDOW* error = newwin(1, 70, 3, 5);
   wrefresh(search_box);
   wrefresh(display);
   char* line = malloc(1);
   char* command = 0;
   char* args = 0;
   unsigned foodLength;
+  unsigned capacity;
+  unsigned previousFoodLength;
+  unsigned previousCapacity;
   do
   {
     free(line);
@@ -192,40 +224,178 @@ void main_menu(char* fileName)
     args = strtok(NULL, "\n");
     if (strcmp(command, "search") == 0)
     {
-      char* argument;
-      argument = strtok(args, " \n");
-      foodLength = 0;
-      FoodItem** food = search_items(argument, &foodLength, data);
-      display_food_items(display, food, foodLength, 0);
+      char** arguments = malloc(sizeof(char*));
+      unsigned c = 1;
+      unsigned l = 1;
+      *arguments = strtok(args, " ");
+      while (*(arguments + l - 1) != NULL)
+      {
+        if (c == l - 1)
+        {
+          arguments = realloc(arguments, c * 2 *sizeof(char*));
+          c *= 2;
+        }
+        *(arguments + l) = strtok(NULL, " ");
+        l++;
+      }
+      l--;
+      previousFoodLength = 0;
+      FoodItem** food = 0;
+      FoodItem** previous = 0;
+      for (int i = 0; i < l; i++)
+      {
+        foodLength = 0;
+        capacity = 0;
+        food = return_child_items(food, &foodLength, &capacity, 36,
+                                  find_trie_entry(*(arguments + i), data));
+        if (l > 1)
+        {
+          if (i == 0)
+          {
+            previousFoodLength = foodLength;
+            previous = food;
+            foodLength = 0;
+            capacity = 0;
+            food = 0;
+            food = return_child_items(food, &foodLength, &capacity, 36,
+                                      find_trie_entry(*(arguments + 1), data));
+            i++;
+          }
+          food = intersection(food, previous, foodLength, previousFoodLength, &foodLength);
+          free(previous);
+          previous = food;
+          previousFoodLength = foodLength;
+        }
+      }
+      if (food && *food)
+      {
+        display_food_items(display, food, foodLength, 0);
+      }
+      else
+      {
+        display_error(display, "No products found.");
+      }
+      free(arguments);
       free(food);
     }
     else if (strcmp(command, "help") == 0)
     {
-
+      display_help(display);
     }
     else if (strcmp(command, "info") == 0)
     {
       char* argument;
       argument = strtok(args, " \n");
-      if (strlen(argument) == 8 || strtol(argument, NULL, 10) != 0L)
+      if (strlen(argument) == 8 && strtol(argument, NULL, 10) != 0L)
       {
         foodLength = 0;
-        FoodItem** food = search_items(argument, &foodLength, data);
-        if (*food)
+        capacity = 0;
+        FoodItem** food;
+        food = return_child_items(food, &foodLength, &capacity, 10,
+                                  find_trie_entry(argument, data));
+        if (food && *food)
           display_food_facts(display, *food);
+        else
+          display_error(display, "Product ID not found.");
         free(food);
       }
+      else
+      {
+        display_error(display, "Invalid product ID.");
+      }
+    }
+    else if (strcmp(command, "diary") == 0)
+    {
+      char** arguments = malloc(sizeof(char*));
+      unsigned c = 1;
+      unsigned l = 1;
+      *arguments = strtok(args, " ");
+      if (!*arguments)
+      {
+        display_error(display, "Invalid diary command");
+      }
+      else
+      {
+        while (*(arguments + l - 1) != NULL)
+        {
+          if (c == l - 1)
+          {
+            arguments = realloc(arguments, c * 2 *sizeof(char*));
+            c *= 2;
+          }
+          *(arguments + l) = strtok(NULL, " ");
+          l++;
+        }
+        l--;
+        if (!strcmp(*arguments, "view"))
+        {
+          display_food_items(display, diary->entries, diary->numEntries, 0);
+        }
+        else if (!strcmp(*arguments, "write"))
+        {
+          if (l != 2 && l != 3)
+          {
+            display_error(display, "Invalid Use of 'diary add'");
+          }
+          else if (strlen(*(arguments + 1)) == 8 && strtol(*(arguments + 1), NULL, 10) != 0L)
+          {
+            foodLength = 0;
+            capacity = 0;
+            FoodItem** food;
+            food = return_child_items(food, &foodLength, &capacity, 10,
+                                      find_trie_entry(*(arguments + 1), data));
+            if (food && *food && l == 2)
+            {
+              write_item(*food, diary, 1);
+            }
+            else if (food && *food && l == 3 && strtol(*(arguments + 2), NULL, 10) != 0L)
+            {
+              write_item(*food, diary, strtol(*(arguments + 2), NULL, 10));
+            }
+            else
+            {
+              display_error(display, "Product ID not found.");
+            }
+            free(food);
+          }
+          else
+          {
+            display_error(display, "Invalid Product ID");
+          }
+        }
+        else if (!strcmp(*arguments, "delete"))
+        {
+          if (l != 2)
+          {
+            display_error(display, "Invalid Use of 'diary delete'");
+          }
+          else if (strlen(*(arguments + 1)) == 8 && strtol(*(arguments + 1), NULL, 10) != 0L)
+          {
+            foodLength = 0;
+            capacity = 0;
+            FoodItem** food;
+            food = return_child_items(food, &foodLength, &capacity, 10,
+                                      find_trie_entry(*(arguments + 1), data));
+            if (food && *food)
+              delete_item(*food, diary);
+            else
+              display_error(display, "Product ID not found.");
+            free(food);
+          }
+        }
+      }
+      free(arguments);
     }
     else
     {
-
+      display_error(display, "Invalid Command. Type 'help' for a list of commands.");
     }
   }
   while (strcmp(command, "quit") != 0);
-  free_diary(diary, diaryEntries, diaryCapacity);
+  free(line);
+  write_diary(fileName, diary);
+  free_diary(diary);
   free_database(data, size);
-  free(fileName);
   delwin(search_box);
   delwin(display);
-  delwin(error);
 }

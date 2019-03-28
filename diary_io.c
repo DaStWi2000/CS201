@@ -1,118 +1,128 @@
 #include "diary_io.h"
 
-void write_item(FoodItem* food, DiaryEntry* entry)
+FoodItem** find_item(FoodItem*, DiaryEntry*);
+
+void write_item(FoodItem* food, DiaryEntry* entry, unsigned quantity)
 {
   if (entry->capacity == entry->numEntries)
   {
-    entry->capacity *= 2;
-    entry->entries = realloc(entry->entries, sizeof(DiaryEntry*)*entry->capacity);
-  }
-  *(entry->entries + entry->numEntries) = food;
-  entry->numEntries++;
-}
-
-DiaryEntry* get_day_items(time_t date, DiaryEntry* entryList, unsigned entries)
-{
-  int b = 0;
-  int e = entries - 1;
-  int condition;
-  int i;
-  while (b <= e)
-  {
-    i = (b + e)/2;
-    condition = difftime((entryList + i)->date, date);
-    if (condition == 0)
+    if (entry->capacity == 0)
     {
-      return (entryList + i);
-    }
-    else if (condition < 0)
-    {
-      b = i + 1;
+      entry->capacity = 1;
+      entry->entries = malloc(sizeof(FoodItem*));
+      entry->quantities = malloc(sizeof(unsigned));
     }
     else
     {
-      e = i - 1;
+      entry->capacity *= 2;
+      entry->entries = realloc(entry->entries, sizeof(FoodItem*) * entry->capacity);
+      entry->quantities = realloc(entry->quantities, sizeof(unsigned) * entry->capacity);
+    }
+  }
+  if (!find_item(food, entry))
+  {
+    unsigned i = entry->numEntries;
+    for (; i > 0 && strcmp(food->product_id, (*(entry->entries + i - 1))->product_id) < 0; i--)
+    {
+      *(entry->entries + i) = *(entry->entries + i - 1);
+      *(entry->quantities + i) = *(entry->quantities + i - 1);
+    }
+    *(entry->entries + i) = food;
+    *(entry->quantities + i) = quantity;
+    entry->numEntries++;
+  }
+  else
+  {
+    unsigned i = find_item(food, entry) - entry->entries;
+    *(entry->quantities + i) = quantity;
+  }
+}
+
+void delete_item(FoodItem* food, DiaryEntry* entry)
+{
+  if (find_item(food, entry))
+  {
+    unsigned i = 0;
+    for (; strcmp(food->product_id, (*(entry->entries + i))->product_id) > 0; i++);
+    for (; i < entry->numEntries - 1; i++)
+    {
+      *(entry->entries + i) = *(entry->entries + i + 1);
+      *(entry->quantities + i) = *(entry->quantities + i + 1);
+    }
+    entry->numEntries--;
+  }
+}
+
+FoodItem** find_item(FoodItem* food, DiaryEntry* entry)
+{
+  int b = 0;
+  int e = entry->numEntries - 1;
+  int index = 0;
+  while (b < e)
+  {
+    index = (b + e)/2;
+    if (!strcmp(food->product_id, (*(entry->entries + index))->product_id))
+    {
+      return entry->entries + index;
+    }
+    else if (strcmp(food->product_id, (*(entry->entries + index))->product_id) > 0)
+    {
+      b = index + 1;
+    }
+    else
+    {
+      e = index - 1;
     }
   }
   return NULL;
 }
 
-void write_diary(char* userName, DiaryEntry* entryList, unsigned entries)
+void write_diary(char* userName, DiaryEntry* entryList)
 {
   FILE* diary = fopen(userName, "w");
-  struct tm* timeinfo;
-  char date[11];
-  for (unsigned i = 0; i < entries; i++)
+  for (unsigned i = 0; i < entryList->numEntries; i++)
   {
-    timeinfo = gmtime(&((entryList + i)->date));
-    strftime(date, 11, "%Y,%m,%d", timeinfo);
-    for (unsigned j = 0; j < (entryList + i)->numEntries; j++)
-    {
-      fprintf(diary, "%s,%s\n", date, (*((entryList + i)->entries)+j)->product_id);
-    }
+    fprintf(diary, "%s,%u\n", (*(entryList->entries+i))->product_id, *(entryList->quantities + i));
   }
   fclose(diary);
 }
 
-DiaryEntry* read_diary(char* userName, unsigned* length, unsigned* capacity, StorageTrie* search)
+DiaryEntry* read_diary(char* userName, StorageTrie* search)
 {
   FILE* diary = fopen(userName, "r");
-  *capacity = 2;
-  *length = 0;
-  DiaryEntry* entries = malloc(sizeof(DiaryEntry) * *capacity);
-
+  DiaryEntry* entries = malloc(sizeof(DiaryEntry));
+  entries->numEntries = 0;
+  entries->capacity = 0;
   if (diary)
   {
     //Temporary cstring for reading lines in
-    char* line = malloc(50);
+    char line[60];
     char* token;
-    DiaryEntry* tmp;
-    struct tm timeinfo = {0};
 
-    FoodItem** food;
-
-    unsigned* l = malloc(sizeof(unsigned));
+    StorageTrie* result;
 
     //While there are still lines left to read in the file
-    while (fgets(line, 50, diary) != NULL)
+    while (fgets(line, 60, diary) != NULL)
     {
-      token = strtok(line, ",\n");
-      timeinfo.tm_year = atoi(token) - 1900;
-      token = strtok (NULL, ",\n");
-      timeinfo.tm_mon = atoi(token) - 1;
-      token = strtok (NULL, ",\n");
-      timeinfo.tm_mday = atoi(token);
-      token = strtok (NULL, ",\n");
-      tmp = get_day_items(mktime(&timeinfo), entries, *length);
-      if (!tmp)
+      token = strtok(line, ",");
+      result = find_trie_entry(token, search);
+      if (result)
       {
-        tmp = (entries + *(length));
-        *length = *length + 1;
-        tmp->entries = malloc(sizeof(FoodItem*)*2);
-        tmp->numEntries = 0;
-        tmp->capacity = 2;
+        token = strtok(NULL, "\n");
+        write_item(*(result->AllEntries), entries, strtol(token, NULL, 10));
       }
-      if (*length == *capacity)
-      {
-        *capacity *= 2;
-        entries = realloc(entries, sizeof(DiaryEntry) * *capacity);
-      }
-      tmp->date = mktime(&timeinfo);
-      food = search_items(token, l, search);
-      write_item(*food, tmp);
-      free(food);
     }
-    free(line);
-    free(l);
     fclose(diary);
   }
   return entries;
 }
 
-void free_diary(DiaryEntry* diary, unsigned* diaryCapacity, unsigned* diaryEntries)
+void free_diary(DiaryEntry* diary)
 {
-  free (diaryEntries);
-  free (diaryCapacity);
-  free (diary->entries);
-  free (diary);
+  if (diary->capacity)
+  {
+    free(diary->quantities);
+    free(diary->entries);
+  }
+  free(diary);
 }

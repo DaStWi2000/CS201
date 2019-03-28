@@ -1,5 +1,7 @@
 #include "database_io.h"
 
+char line_to_entry(char*, FoodItem*);
+
 //Reads information from file into an array of entries
 FoodItem* read_database(char* filename, unsigned* size_of_list)
 {

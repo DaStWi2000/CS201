@@ -4,6 +4,5 @@
 #include <string.h>
 #include "FoodItem.h"
 
-char line_to_entry(char*, FoodItem*);
 FoodItem* read_database(char*, unsigned*);
 void free_food_entry(FoodItem*);

@@ -1,8 +1,4 @@
-//#include <math.h>
 #include "graphics.h"
-//#include "database_io.h"
-//#include "database_search.h"
-//#include "diary_io.h"
 
 /*void tester(StorageTrie* data, DiaryEntry* diary, char* fileName, unsigned* diaryEntries)
 {
@@ -23,6 +19,7 @@ int main()
   {
     main_menu(fileName);
   }
+  free(fileName);
   endwin();
   return 0;
 }
