@@ -58,7 +58,7 @@ FoodItem** find_item(FoodItem* food, DiaryEntry* entry)
   int b = 0;
   int e = entry->numEntries - 1;
   int index = 0;
-  while (b < e)
+  while (b <= e)
   {
     index = (b + e)/2;
     if (!strcmp(food->product_id, (*(entry->entries + index))->product_id))

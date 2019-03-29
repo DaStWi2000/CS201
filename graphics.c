@@ -1,6 +1,6 @@
 #include "graphics.h"
 
-void display_food_items(WINDOW*, FoodItem**, unsigned, unsigned);
+void display_food_items(WINDOW*, FoodItem**, unsigned*, unsigned, unsigned);
 void display_food_facts(WINDOW*, FoodItem*);
 void display_error(WINDOW*, char*);
 
@@ -32,6 +32,12 @@ char* get_window_input(WINDOW* window, int y, int x, int size)
       x++;
       data[counter++] = input;
     }
+    else if (input == 0x1B)
+    {
+      mvwgetch(window, y, x);
+      mvwgetch(window, y, x);
+    }
+
   }
   data[counter] = 0;
   return data;
@@ -66,41 +72,59 @@ char* user_login_screen()
   return userName;
 }
 
-void display_food_items(WINDOW* win, FoodItem** list, unsigned length, unsigned start)
+void display_food_items(WINDOW* win, FoodItem** list, unsigned* quantities, unsigned length, unsigned start)
 {
+  unsigned nameLength = 34;
+  unsigned makerLength = 29;
+  if (quantities)
+  {
+    nameLength -= 2;
+    makerLength -= 2;
+  }
   char id[9];
-  char name[32] = "";
-  name[31] = 0;
-  char maker[27] = "";
-  maker[26] = 0;
-  char line[68] = "";
-  line[67] = 0;
+  char* name = malloc(nameLength + 1);
+  name[nameLength] = 0;
+  char* maker = malloc(makerLength + 1);
+  maker[makerLength] = 0;
+  char quantity[4];
+  char line[74] = "";
+  line[73] = 0;
   wclear(win);
   wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
-  for (unsigned i = start; i < length && i - start < 18; i++)
+  for (unsigned i = start; i < length && i - start < 17; i++)
   {
     name[0] = 0;
     maker[0] = 0;
+    quantity[0] = 0;
     line[0] = 0;
     strcpy(id, (*(list + i))->product_id);
-    strncpy(name, (*(list + i))->product_name, 31);
-    strncpy(maker, (*(list + i))->manufacturer, 26);
-    if (strlen(name) < 31)
+    strncpy(name, (*(list + i))->product_name, nameLength);
+    strncpy(maker, (*(list + i))->manufacturer, makerLength);
+    if (strlen(name) < nameLength)
     {
-      memset(name + strlen(name), ' ', 31 - strlen(name));
+      memset(name + strlen(name), ' ', nameLength - strlen(name));
     }
-    if (strlen(maker) < 26)
+    if (strlen(maker) < makerLength)
     {
-      memset(maker + strlen(maker), ' ', 26 - strlen(maker));
+      memset(maker + strlen(maker), ' ', makerLength - strlen(maker));
     }
     strcat(line, id);
     strcat(line, "|");
     strcat(line, name);
     strcat(line, "|");
     strcat(line, maker);
+    if (quantities)
+    {
+      strcat(line, "|");
+      snprintf(quantity, 4, "%3u", *(quantities + i));
+      strcat(line, quantity);
+    }
+
     wmove(win, i - start + 1, 1);
     waddstr(win, line);
   }
+  free(name);
+  free(maker);
   wrefresh(win);
 }
 
@@ -113,12 +137,12 @@ void display_food_facts(WINDOW* win, FoodItem* item)
   waddstr(win, "ID: ");
   waddstr(win, item->product_id);
   wmove(win, 2, 1);
-  char templen[55];
+  char templen[61];
   waddstr(win, "Product Name: ");
-  if (strlen(item->product_name) >= 54)
+  if (strlen(item->product_name) >= 60)
   {
-    memcpy(templen, item->product_name, 54);
-    templen[54] = 0;
+    memcpy(templen, item->product_name, 60);
+    templen[60] = 0;
     waddstr(win, templen);
   }
   else
@@ -127,10 +151,10 @@ void display_food_facts(WINDOW* win, FoodItem* item)
   }
   wmove(win, 3, 1);
   waddstr(win, "Manufacturer: ");
-  if (strlen(item->manufacturer) >= 54)
+  if (strlen(item->manufacturer) >= 60)
   {
-    memcpy(templen, item->manufacturer, 54);
-    templen[54] = 0;
+    memcpy(templen, item->manufacturer, 60);
+    templen[60] = 0;
     waddstr(win, templen);
   }
   else
@@ -200,10 +224,11 @@ void main_menu(char* fileName)
   unsigned size;
   StorageTrie* data = initialize_database(&size);
   DiaryEntry* diary = read_diary(fileName, data);
-  WINDOW* search_box = newwin(3, 70, 0, 5);
+  WINDOW* search_box = newwin(3, 76, 0, 2);
   wborder(search_box, 0, 0, 0, 0, 0, 0, 0, 0);
-  WINDOW* display = newwin(20, 70, 4, 5);
+  WINDOW* display = newwin(19, 76, 4, 2);
   wborder(display, 0, 0, 0, 0, 0, 0, 0, 0);
+  WINDOW* page = newwin(1, 76, 23, 2);
   wrefresh(search_box);
   wrefresh(display);
   char* line = malloc(1);
@@ -213,6 +238,8 @@ void main_menu(char* fileName)
   unsigned capacity;
   unsigned previousFoodLength;
   unsigned previousCapacity;
+  FoodItem** food = 0;
+  FoodItem** previous = 0;
   do
   {
     free(line);
@@ -222,7 +249,7 @@ void main_menu(char* fileName)
     wrefresh(search_box);
     command = strtok(line, " \n");
     args = strtok(NULL, "\n");
-    if (strcmp(command, "search") == 0)
+    if (!strcmp(command, "search"))
     {
       char** arguments = malloc(sizeof(char*));
       unsigned c = 1;
@@ -240,8 +267,8 @@ void main_menu(char* fileName)
       }
       l--;
       previousFoodLength = 0;
-      FoodItem** food = 0;
-      FoodItem** previous = 0;
+      food = 0;
+      previous = 0;
       for (int i = 0; i < l; i++)
       {
         foodLength = 0;
@@ -269,7 +296,7 @@ void main_menu(char* fileName)
       }
       if (food && *food)
       {
-        display_food_items(display, food, foodLength, 0);
+        display_food_items(display, food, NULL, foodLength, 0);
       }
       else
       {
@@ -278,11 +305,11 @@ void main_menu(char* fileName)
       free(arguments);
       free(food);
     }
-    else if (strcmp(command, "help") == 0)
+    else if (!strcmp(command, "help"))
     {
       display_help(display);
     }
-    else if (strcmp(command, "info") == 0)
+    else if (!strcmp(command, "info"))
     {
       char* argument;
       argument = strtok(args, " \n");
@@ -304,7 +331,7 @@ void main_menu(char* fileName)
         display_error(display, "Invalid product ID.");
       }
     }
-    else if (strcmp(command, "diary") == 0)
+    else if (!strcmp(command, "diary"))
     {
       char** arguments = malloc(sizeof(char*));
       unsigned c = 1;
@@ -329,13 +356,13 @@ void main_menu(char* fileName)
         l--;
         if (!strcmp(*arguments, "view"))
         {
-          display_food_items(display, diary->entries, diary->numEntries, 0);
+          display_food_items(display, diary->entries, diary->quantities, diary->numEntries, 0);
         }
         else if (!strcmp(*arguments, "write"))
         {
           if (l != 2 && l != 3)
           {
-            display_error(display, "Invalid Use of 'diary add'");
+            display_error(display, "Invalid Use of 'diary write'");
           }
           else if (strlen(*(arguments + 1)) == 8 && strtol(*(arguments + 1), NULL, 10) != 0L)
           {
@@ -347,20 +374,23 @@ void main_menu(char* fileName)
             if (food && *food && l == 2)
             {
               write_item(*food, diary, 1);
+              display_food_items(display, diary->entries, diary->quantities, diary->numEntries, 0);
             }
-            else if (food && *food && l == 3 && strtol(*(arguments + 2), NULL, 10) != 0L)
+            else if (food && *food && l == 3 && strtol(*(arguments + 2), NULL, 10) != 0L
+                     && strtol(*(arguments + 2), NULL, 10) < 1000)
             {
               write_item(*food, diary, strtol(*(arguments + 2), NULL, 10));
+              display_food_items(display, diary->entries, diary->quantities, diary->numEntries, 0);
             }
             else
             {
-              display_error(display, "Product ID not found.");
+              display_error(display, "Invalid Product ID or Quantity.");
             }
             free(food);
           }
           else
           {
-            display_error(display, "Invalid Product ID");
+            display_error(display, "Invalid Product ID.");
           }
         }
         else if (!strcmp(*arguments, "delete"))
@@ -377,11 +407,20 @@ void main_menu(char* fileName)
             food = return_child_items(food, &foodLength, &capacity, 10,
                                       find_trie_entry(*(arguments + 1), data));
             if (food && *food)
+            {
               delete_item(*food, diary);
+              display_food_items(display, diary->entries, diary->quantities, diary->numEntries, 0);
+            }
             else
+            {
               display_error(display, "Product ID not found.");
+            }
             free(food);
           }
+        }
+        else
+        {
+          display_error(display, "Invalid diary command");
         }
       }
       free(arguments);
@@ -397,5 +436,6 @@ void main_menu(char* fileName)
   free_diary(diary);
   free_database(data, size);
   delwin(search_box);
+  delwin(page);
   delwin(display);
 }
