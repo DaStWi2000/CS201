@@ -91,7 +91,7 @@ void display_food_items(WINDOW* win, FoodItem** list, unsigned* quantities, unsi
   line[73] = 0;
   wclear(win);
   wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
-  for (unsigned i = start; i < length && i - start < 17; i++)
+  for (unsigned i = start * 17; i < length && i - start*17 < 17; i++)
   {
     name[0] = 0;
     maker[0] = 0;
@@ -120,7 +120,7 @@ void display_food_items(WINDOW* win, FoodItem** list, unsigned* quantities, unsi
       strcat(line, quantity);
     }
 
-    wmove(win, i - start + 1, 1);
+    wmove(win, i - start*17 + 1, 1);
     waddstr(win, line);
   }
   free(name);
@@ -219,6 +219,51 @@ void display_help(WINDOW* win)
   wrefresh(win);
 }
 
+void display_page_info(WINDOW* win, unsigned currentPage, unsigned totalPages)
+{
+  unsigned cLength = 0;
+  unsigned tLength = 0;
+  unsigned tmp = currentPage;
+  while (tmp)
+  {
+    cLength++;
+    tmp /= 10;
+  }
+  tmp = totalPages;
+  while (tmp)
+  {
+    tLength++;
+    tmp /= 10;
+  }
+  char* currentString = malloc(cLength + 1);
+  sprintf(currentString, "%u", currentPage);
+  char* totalString = malloc(tLength + 1);
+  sprintf(totalString, "%u", totalPages);
+  char output[73] = "Page ";
+  if (66 - strlen(currentString) > 0)
+  {
+    strcat(output, currentString);
+    strcat(output, "/");
+    if (strlen(output) + strlen(totalString) < 73)
+    {
+      strcat(output, totalString);
+    }
+    else
+    {
+      strncat(output, totalString, 72 - strlen(output));
+    }
+  }
+  else
+  {
+    strncat(output, currentString, 67);
+  }
+  wclear(win);
+  waddstr(win, output);
+  wrefresh(win);
+  free(currentString);
+  free(totalString);
+}
+
 void main_menu(char* fileName)
 {
   unsigned size;
@@ -244,6 +289,7 @@ void main_menu(char* fileName)
   {
     free(line);
     line = get_window_input(search_box, 1, 1, 68);
+    wrefresh(page);
     wclear(search_box);
     wborder(search_box, 0, 0, 0, 0, 0, 0, 0, 0);
     wrefresh(search_box);
@@ -251,6 +297,11 @@ void main_menu(char* fileName)
     args = strtok(NULL, "\n");
     if (!strcmp(command, "search"))
     {
+      if (food)
+      {
+        free(food);
+        food = 0;
+      }
       char** arguments = malloc(sizeof(char*));
       unsigned c = 1;
       unsigned l = 1;
@@ -297,22 +348,38 @@ void main_menu(char* fileName)
       if (food && *food)
       {
         display_food_items(display, food, NULL, foodLength, 0);
+        display_page_info(page, 1, foodLength/17 + 1);
       }
       else
       {
         display_error(display, "No products found.");
+        wclear(page);
+        wrefresh(page);
       }
       free(arguments);
-      free(food);
     }
     else if (!strcmp(command, "help"))
     {
+      if (food)
+      {
+        free(food);
+        food = 0;
+      }
+      wclear(page);
+      wrefresh(page);
       display_help(display);
     }
     else if (!strcmp(command, "info"))
     {
+      if (food)
+      {
+        free(food);
+        food = 0;
+      }
+      wclear(page);
+      wrefresh(page);
       char* argument;
-      argument = strtok(args, " \n");
+      argument = strtok(args, " ");
       if (strlen(argument) == 8 && strtol(argument, NULL, 10) != 0L)
       {
         foodLength = 0;
@@ -333,6 +400,11 @@ void main_menu(char* fileName)
     }
     else if (!strcmp(command, "diary"))
     {
+      if (food)
+      {
+        free(food);
+        food = 0;
+      }
       char** arguments = malloc(sizeof(char*));
       unsigned c = 1;
       unsigned l = 1;
@@ -340,6 +412,8 @@ void main_menu(char* fileName)
       if (!*arguments)
       {
         display_error(display, "Invalid diary command");
+        wclear(page);
+        wrefresh(page);
       }
       else
       {
@@ -357,6 +431,7 @@ void main_menu(char* fileName)
         if (!strcmp(*arguments, "view"))
         {
           display_food_items(display, diary->entries, diary->quantities, diary->numEntries, 0);
+          display_page_info(page, 1, diary->numEntries/17 + 1);
         }
         else if (!strcmp(*arguments, "write"))
         {
@@ -381,6 +456,7 @@ void main_menu(char* fileName)
             {
               write_item(*food, diary, strtol(*(arguments + 2), NULL, 10));
               display_food_items(display, diary->entries, diary->quantities, diary->numEntries, 0);
+              display_page_info(page, 1, diary->numEntries/17 + 1);
             }
             else
             {
@@ -418,16 +494,65 @@ void main_menu(char* fileName)
             free(food);
           }
         }
+        else if (!strcmp(*arguments, "page"))
+        {
+          if (l != 2)
+          {
+            display_error(display, "Invalid Use of 'diary page'");
+          }
+          else
+          {
+            unsigned pageNumber = strtol(*(arguments + 1), NULL, 10);
+            if (pageNumber && pageNumber <= diary->numEntries/17 + 1)
+            {
+              display_food_items(display, diary->entries, diary->quantities, diary->numEntries, pageNumber - 1);
+              display_page_info(page, 1, diary->numEntries/17 + 1);
+            }
+            else
+            {
+              display_error(display, "Invalid Diary Page Number");
+              wclear(page);
+              wrefresh(page);
+            }
+          }
+        }
         else
         {
           display_error(display, "Invalid diary command");
+          wclear(page);
+          wrefresh(page);
         }
       }
       free(arguments);
     }
+    else if (!strcmp(command, "page"))
+    {
+      char* argument;
+      argument = strtok(args, " ");
+      unsigned pageNumber = strtol(argument, NULL, 10);
+      if (pageNumber && pageNumber <= (foodLength/17 + 1) && food)
+      {
+        display_food_items(display, food, NULL, foodLength, pageNumber - 1);
+        display_page_info(page, pageNumber, foodLength/17 + 1);
+      }
+      else if (!food)
+      {
+        display_error(display, "Please search for an item to select the page number");
+        wclear(page);
+        wrefresh(page);
+      }
+      else
+      {
+        display_error(display, "Invalid Page Number");
+        wclear(page);
+        wrefresh(page);
+      }
+    }
     else
     {
       display_error(display, "Invalid Command. Type 'help' for a list of commands.");
+      wclear(page);
+      wrefresh(page);
     }
   }
   while (strcmp(command, "quit") != 0);
