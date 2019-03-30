@@ -16,6 +16,6 @@ For more information on commands, you can type the 'help' command in the program
 
 The search command displays items with the product id, name, and manufacturer being displayed in a table in that order. The diary view/page functions include the quantity to the right of the manufacturer.
 The 'diary write/delete' functions provide 'CUD' access to the diary. Whereas the 'diary page/view' functions provide 'R' access to the diary. To update a quantity, use the 'diary write' command.
-The info command provides the actual nutrition of the item given.
+The info command provides the actual nutrition of the item given. See https://alabama.box.com/s/oy09rchpe8h0q1b44lg9paovh95cjtya for a demo of the software.
 
 Please note that this program works best in an 80x24 sized terminal.
