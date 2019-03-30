@@ -562,7 +562,7 @@ void main_menu(char* fileName)
         wrefresh(page);
 
         //If it's a valid product id
-        if (strlen(args) == 8 && strtoul(args, NULL, 10) != 0L)
+        if (args && strlen(args) == 8 && strtoul(args, NULL, 10) != 0L)
         {
           //Resets previous food information
           foodLength = 0;
@@ -798,26 +798,36 @@ void main_menu(char* fileName)
       //User typed the page command
       else if (!strcmp(command, "page"))
       {
-        //Converts 2nd argument to a long
-        unsigned pageNumber = strtoul(args, NULL, 10);
-
-        //If a valid page number and previous food array is defined
-        if (pageNumber && pageNumber <= ((foodLength - 1)/17 + 1) && food)
+        if (args)
         {
-          //Displays the page of food items specified by the user
-          display_food_items(display, food, NULL, foodLength, pageNumber - 1);
-          display_page_info(page, pageNumber, (foodLength - 1)/17 + 1);
-        }
+          //Converts 2nd argument to a long
+          unsigned pageNumber = strtoul(args, NULL, 10);
 
-        //If there is not previous food array defined
-        else if (!food)
-        {
-          //Displays the error and erases page info
-          display_error(display, "Please search for an item to select the page number");
-          wclear(page);
-          wrefresh(page);
-        }
+          //If a valid page number and previous food array is defined
+          if (pageNumber && pageNumber <= ((foodLength - 1)/17 + 1) && food)
+          {
+            //Displays the page of food items specified by the user
+            display_food_items(display, food, NULL, foodLength, pageNumber - 1);
+            display_page_info(page, pageNumber, (foodLength - 1)/17 + 1);
+          }
 
+          //If there is not previous food array defined
+          else if (!food)
+          {
+            //Displays the error and erases page info
+            display_error(display, "Please search for an item to select the page number");
+            wclear(page);
+            wrefresh(page);
+          }
+          //If it is not a valid page number
+          else
+          {
+            //Displays the error and erases page info
+            display_error(display, "Invalid Page Number");
+            wclear(page);
+            wrefresh(page);
+          }        
+        }
         //If it is not a valid page number
         else
         {
