@@ -1,5 +1,6 @@
 #include "database_io.h"
 
+//Private Functions
 char line_to_entry(char*, FoodItem*);
 
 //Reads information from file into an array of entries
@@ -7,6 +8,12 @@ FoodItem* read_database(char* filename, unsigned* size_of_list)
 {
   //Initializes file
   FILE* database = fopen(filename, "r");
+
+  //If the file can't be opened
+  if (!database)
+  {
+    return NULL;
+  }
 
   //Sets initial conditions for dynamic array
   unsigned capacity = 2;
@@ -46,15 +53,11 @@ FoodItem* read_database(char* filename, unsigned* size_of_list)
 //Parses the line into the FoodItem
 char line_to_entry(char* line, FoodItem* entry)
 {
-  //Stores number of grams/mL per serving
-  float serving_size_gml;
-
   //Array of cstrings that store parsed info
   char* items[12];
 
   //Starts the parsing
   int i = 0;
-  char* tmp;
   items[i] = strtok(line, "~\n");
   while(items[i] != NULL)
   {
@@ -102,6 +105,7 @@ char line_to_entry(char* line, FoodItem* entry)
   }
 }
 
+//Frees the specific food entry from memory
 void free_food_entry(FoodItem* item)
 {
   free(item->product_id);

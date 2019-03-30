@@ -3,6 +3,7 @@
 
 typedef struct FoodItem FoodItem;
 
+//Stores an item of food
 struct FoodItem
 {
   char* product_id;

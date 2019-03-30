@@ -1,24 +1,21 @@
 #include "graphics.h"
 
-/*void tester(StorageTrie* data, DiaryEntry* diary, char* fileName, unsigned* diaryEntries)
-{
-  unsigned* temp = malloc(sizeof(unsigned));
-  FoodItem** food = search_items("45001542", temp, data);
-  write_item(*food,diary);
-  write_diary(fileName, diary, *diaryEntries);
-  free(temp);
-  free(food);
-}*/
-
 int main()
 {
+  //Intializes Ncurses
   initscr();
   noecho();
+
+  //Gets file name
   char* fileName = user_login_screen();
+
+  //As long as the user didn't say quit, the main menu opens
   if (strcmp(fileName, "quit.log"))
   {
     main_menu(fileName);
   }
+
+  //Ends program
   free(fileName);
   endwin();
   return 0;
