@@ -131,7 +131,7 @@ DiaryEntry* read_diary(char* userName, StorageTrie* search)
     StorageTrie* result;
 
     //While there are still lines left to read in the file
-    while (fgets(line, 12, diary) != NULL)
+    while (fgets(line, 13, diary) != NULL)
     {
       //Parses out the id and quantities
       token = strtok(line, ",");
