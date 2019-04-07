@@ -9,8 +9,7 @@ When the program is launched, you are prompted to enter your user name. The prog
 
 #User Interface Information
 
-Once the user name has been typed, you can use the command line to type your diary commands. If you wish to search for a diary entry that has punctuation, simply type in the term with the punctuation being represented as a space. For example, if you want to look up something by Fresh&Easy, you can type in 'fresh easy' as the search arguments. The search command will find items that contain both 'fresh' and 'easy' in them and return them. The search command is NOT case sensitive.
-For more information on commands, you can type the 'help' command in the program to display the syntax and brief description of each command. Command arguments are not case sensitive, but commands ARE case sensitive.
+Once the user name has been typed, the database is loaded into the program. The database is finished loading when two boxes (the command line and the view window) appear. You can type in the 'help' command in the command line to list all the available commands for execution. The 'help' command is used display the syntax and brief description of each command. You can also use the command line to type your diary commands. If you wish to search for a database entry that has punctuation, simply type in the term with the punctuation being represented as a space. For example, if you want to look up something by Fresh&Easy, you can type in 'fresh easy' as the search arguments. The search command will find items that contain both 'fresh' and 'easy' in them and return them. The search command is NOT case sensitive. Command arguments are not case sensitive, but commands ARE case sensitive.
 
 #Brief Command Summary
 
