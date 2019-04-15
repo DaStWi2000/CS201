@@ -3,7 +3,7 @@ by Daniel Williams
 
 #Food Database Diary Tracker
 
-To use this program, you must have gcc, with ncurses installed, and the food database from https://www.ars.usda.gov/ARSUserFiles/80400525/Data/BFPDB/BFPD_db_07132018.zip
+To use this program, you must have gcc, with ncurses installed, and the food database from https://www.ars.usda.gov/ARSUserFiles/80400525/Data/BFPDB/BFPD_csv_07132018.zip
 A makefile has been provided for your convenience. Making sure the database is extracted from the zip archive, you can compile the code with the 'make' command.
 When the program is launched, you are prompted to enter your user name. The program only accepts Alphanumeric characters as input.
 
